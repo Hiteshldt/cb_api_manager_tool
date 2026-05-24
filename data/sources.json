@@ -1,0 +1,19 @@
+[
+  {
+    "id": "source_f938a388",
+    "name": "BTTE1250001",
+    "type": "websocket",
+    "url": "wss://ztw46d04q3.execute-api.us-east-1.amazonaws.com/production",
+    "authType": "none",
+    "authConfig": {},
+    "headers": {},
+    "pollIntervalSeconds": 30,
+    "wsSubscribeMessage": {
+      "action": "subscribe",
+      "deviceId": "BTTE1250001"
+    },
+    "enabled": true,
+    "createdAt": "2026-05-24T14:08:58.791Z",
+    "updatedAt": "2026-05-24T14:09:28.261Z"
+  }
+]

@@ -1,0 +1,8 @@
+node_modules/
+.env
+data/latest-raw/*
+data/latest-transformed/*
+data/logs/*
+!data/latest-raw/.gitkeep
+!data/latest-transformed/.gitkeep
+!data/logs/.gitkeep

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "transform_b1bf1abf",
+    "name": "IOCL - EDIT 1",
+    "sourceId": "source_f938a388",
+    "mappings": [
+      {
+        "sourcePath": "data.d1",
+        "targetPath": "InCO2"
+      },
+      {
+        "sourcePath": "data.d2",
+        "targetPath": "InPM25"
+      }
+    ],
+    "staticFields": [
+      {
+        "targetPath": "message1",
+        "value": "Message1"
+      }
+    ],
+    "enabled": true,
+    "createdAt": "2026-05-24T14:10:26.991Z",
+    "updatedAt": "2026-05-24T14:10:26.991Z"
+  }
+]
