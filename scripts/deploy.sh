@@ -5,11 +5,11 @@
 #
 #  From your Mac in one command:
 #    ssh -i ~/carbelim-key.pem ec2-user@YOUR_IP \
-#      "cd ~/cb_api_server_tool && ./scripts/deploy.sh"
+#      "cd ~/cb_api_manager_tool && ./scripts/deploy.sh"
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
 
-APP_DIR="$HOME/cb_api_sever_tool"
+APP_DIR="$HOME/cb_api_manager_tool"
 BRANCH="production"
 PORT=$(grep PORT "$APP_DIR/.env" 2>/dev/null | cut -d= -f2 | tr -d '[:space:]' || echo 3001)
 

@@ -8,8 +8,8 @@
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
 
-APP_DIR="$HOME/cb_api_server_tool"
-REPO_URL="https://github.com/Hiteshldt/cb_api_server_tool.git"
+APP_DIR="$HOME/cb_api_manager_tool"
+REPO_URL="https://github.com/Hiteshldt/cb_api_manager_tool.git"
 BRANCH="production"
 
 echo ""

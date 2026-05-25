@@ -9,7 +9,7 @@ Complete guide: branch → EC2 → running in production.
 Do this **once** on your local machine:
 
 ```bash
-cd cb_api_server_tool
+cd cb_api_manager_tool
 
 # Create production branch from your current working code
 git checkout -b production
@@ -75,7 +75,7 @@ Before running, edit one line in the script:
 
 ```bash
 # In scripts/setup-server.sh, change:
-REPO_URL="https://github.com/YOUR_ORG/cb_api_server_tool.git"
+REPO_URL="https://github.com/Hiteshldt/cb_api_manager_tool.git"
 # to your actual GitHub URL
 ```
 
@@ -83,7 +83,7 @@ Commit and push that change first, then on the server:
 
 ```bash
 # On the EC2 server
-curl -fsSL https://raw.githubusercontent.com/YOUR_ORG/cb_api_server_tool/production/scripts/setup-server.sh -o setup.sh
+curl -fsSL https://raw.githubusercontent.com/Hiteshldt/cb_api_manager_tool/production/scripts/setup-server.sh -o setup.sh
 chmod +x setup.sh
 ./setup.sh
 ```
@@ -93,7 +93,7 @@ This installs Node.js, Nginx, PM2, clones the repo, starts the app. Takes ~3 min
 ### 3.3 Set your admin key
 
 ```bash
-nano ~/cb_api_server_tool/.env
+nano ~/cb_api_manager_tool/.env
 ```
 
 ```env
@@ -156,13 +156,13 @@ If you want to deploy manually from your local machine:
 ```bash
 # From your Mac — SSH in and run deploy in one command
 ssh -i ~/Downloads/carbelim-key.pem ubuntu@YOUR_ELASTIC_IP \
-  "cd ~/cb_api_server_tool && ./scripts/deploy.sh"
+  "cd ~/cb_api_manager_tool && ./scripts/deploy.sh"
 ```
 
 Or SSH in first, then:
 
 ```bash
-cd ~/cb_api_server_tool
+cd ~/cb_api_manager_tool
 ./scripts/deploy.sh
 ```
 
@@ -188,9 +188,9 @@ pm2 logs cb-api-engine          # live tail
 pm2 logs cb-api-engine --lines 100  # last 100 lines
 
 # Or directly from log files:
-tail -f ~/cb_api_server_tool/data/logs/app.log
-tail -f ~/cb_api_server_tool/data/logs/errors.log
-tail -f ~/cb_api_server_tool/data/logs/pm2-error.log
+tail -f ~/cb_api_manager_tool/data/logs/app.log
+tail -f ~/cb_api_manager_tool/data/logs/errors.log
+tail -f ~/cb_api_manager_tool/data/logs/pm2-error.log
 ```
 
 ### Nginx logs
@@ -250,7 +250,7 @@ pm2 monit    # live CPU/RAM/logs dashboard in terminal
 If you change `nginx/carbelim.conf` in the repo:
 
 ```bash
-sudo cp ~/cb_api_server_tool/nginx/carbelim.conf /etc/nginx/sites-available/carbelim
+sudo cp ~/cb_api_manager_tool/nginx/carbelim.conf /etc/nginx/sites-available/carbelim
 sudo nginx -t           # test — must say "syntax is ok"
 sudo systemctl reload nginx
 ```
