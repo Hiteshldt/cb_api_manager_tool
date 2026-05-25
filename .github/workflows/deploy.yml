@@ -28,7 +28,7 @@ jobs:
           key:      ${{ secrets.EC2_SSH_KEY }}     # contents of your .pem file
           port:     22
           script: |
-            cd ~/cb_api_server_tool
+            cd ~/cb_api_sever_tool
             ./scripts/deploy.sh
 
       - name: Notify on failure
