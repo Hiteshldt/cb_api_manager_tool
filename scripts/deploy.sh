@@ -9,7 +9,7 @@
 # ═══════════════════════════════════════════════════════════════
 set -euo pipefail
 
-APP_DIR="$HOME/cb_api_server_tool"
+APP_DIR="$HOME/cb_api_sever_tool"
 BRANCH="production"
 PORT=$(grep PORT "$APP_DIR/.env" 2>/dev/null | cut -d= -f2 | tr -d '[:space:]' || echo 3001)
 
