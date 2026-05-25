@@ -232,6 +232,56 @@ select.fc { cursor: pointer; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
+/* ── Skeleton shimmer ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+/* Light skeleton — for white/grey surfaces */
+.sk {
+  display: block; border-radius: 4px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 1200px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+/* Dark skeleton — for dark log/JSON viewers */
+.sk-dark {
+  display: block; border-radius: 3px;
+  background: linear-gradient(90deg, #1e293b 25%, #263548 50%, #1e293b 75%);
+  background-size: 1200px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.sk-8  { height: 8px; }
+.sk-12 { height: 12px; }
+.sk-20 { height: 20px; }
+.sk-28 { height: 28px; }
+/* Skeleton table rows — no hover highlight */
+.sk-tr:hover td { background: transparent !important; }
+
+/* ── Page enter animation ── */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page.active { animation: page-in .2s ease; }
+
+/* ── Button loading state ── */
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+.btn-loading { opacity: .72; pointer-events: none !important; }
+.spin {
+  display: inline-block; width: 11px; height: 11px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin .6s linear infinite;
+  vertical-align: -2px; margin-left: 6px;
+}
+/* Dark spinner for ghost buttons */
+.btn-ghost .spin {
+  border-color: rgba(0,0,0,.12);
+  border-top-color: var(--muted);
+}
+
 @media (max-width: 700px) {
   .sidebar { width: 48px; }
   .sidebar-logo img, .nav-label, .nav-link span, .sidebar-footer span { display: none; }

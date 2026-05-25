@@ -20,10 +20,10 @@ const api = {
     if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
     return d;
   },
-  get:  p    => api.req('GET', p),
+  get:  p     => api.req('GET', p),
   post: (p,b) => api.req('POST', p, b),
   put:  (p,b) => api.req('PUT', p, b),
-  del:  p    => api.req('DELETE', p),
+  del:  p     => api.req('DELETE', p),
 };
 
 // ── Toast ────────────────────────────────────────────────────────────────────
@@ -50,6 +50,47 @@ function jsonHL(obj) {
     });
 }
 function setJSON(el, data) { el.innerHTML = jsonHL(data); }
+
+// ── Skeleton / Loading helpers ────────────────────────────────────────────────
+
+// Skeleton table rows — widths is an array of CSS widths per column
+function skTable(tbodyId, widths, rowCount = 4) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = Array.from({ length: rowCount }, () =>
+    `<tr class="sk-tr">${widths.map(w =>
+      `<td><div class="sk sk-12" style="width:${w}"></div></td>`
+    ).join('')}</tr>`
+  ).join('');
+}
+
+// Skeleton lines for dark log / JSON viewers
+function skLines(elId, count = 10) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const pcts = [80, 65, 90, 55, 75, 70, 85, 60, 72, 68, 88, 50, 78, 63, 82];
+  el.innerHTML = Array.from({ length: count }, (_, i) =>
+    `<div class="sk sk-dark sk-8" style="width:${pcts[i % pcts.length]}%;margin-bottom:8px"></div>`
+  ).join('');
+}
+
+// Skeleton for dashboard stat numbers
+function skStats() {
+  ['s-sources', 's-transforms', 's-endpoints', 's-active'].forEach(id => {
+    document.getElementById(id).innerHTML =
+      '<div class="sk sk-28" style="width:40px"></div>';
+  });
+}
+
+// Button loading state — saves original HTML, shows spinner
+function btnLoad(btn, label) {
+  btn._prev = btn.innerHTML;
+  btn.classList.add('btn-loading');
+  btn.innerHTML = h(label ?? btn.textContent.trim()) + '<span class="spin"></span>';
+}
+function btnDone(btn) {
+  btn.classList.remove('btn-loading');
+  if (btn._prev !== undefined) { btn.innerHTML = btn._prev; delete btn._prev; }
+}
 
 // ── Modals ───────────────────────────────────────────────────────────────────
 const openM  = id => document.getElementById(id).classList.add('open');
@@ -99,25 +140,47 @@ function logout() {
 document.getElementById('login-btn').addEventListener('click', async () => {
   const k = document.getElementById('login-key').value.trim();
   if (!k) return;
+  const btn = document.getElementById('login-btn');
+  btnLoad(btn, 'Signing in');
   S.key = k;
   try {
     await api.get('/admin/stats');
     sessionStorage.setItem('cbkey', k);
     document.getElementById('login-err').textContent = '';
+    btnDone(btn);
     showApp();
     go(location.hash.slice(1) || 'dashboard');
-  } catch { document.getElementById('login-err').textContent = 'Invalid admin key.'; }
+  } catch {
+    btnDone(btn);
+    document.getElementById('login-err').textContent = 'Invalid admin key.';
+  }
 });
 document.getElementById('login-key').addEventListener('keydown', e => e.key === 'Enter' && document.getElementById('login-btn').click());
 document.getElementById('logout-btn').addEventListener('click', logout);
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────────
 async function loadDash() {
-  const [stats, srcs, logs] = await Promise.all([api.get('/admin/stats'), api.get('/admin/sources'), api.get('/admin/logs?lines=25')]);
-  document.getElementById('s-sources').textContent   = stats.sources;
+  // Show skeletons immediately
+  skStats();
+  document.getElementById('dash-sources').innerHTML =
+    ['72%', '55%', '80%'].map(w =>
+      `<div class="src-row">
+        <div class="sk sk-12" style="width:${w}"></div>
+        <div class="sk sk-12" style="width:30px"></div>
+      </div>`
+    ).join('');
+  skLines('dash-logs', 12);
+
+  const [stats, srcs, logs] = await Promise.all([
+    api.get('/admin/stats'),
+    api.get('/admin/sources'),
+    api.get('/admin/logs?lines=25'),
+  ]);
+
+  document.getElementById('s-sources').textContent    = stats.sources;
   document.getElementById('s-transforms').textContent = stats.transformations;
-  document.getElementById('s-endpoints').textContent = stats.endpoints;
-  document.getElementById('s-active').textContent    = stats.activeSources;
+  document.getElementById('s-endpoints').textContent  = stats.endpoints;
+  document.getElementById('s-active').textContent     = stats.activeSources;
 
   const dsr = document.getElementById('dash-sources');
   dsr.innerHTML = srcs.length
@@ -129,6 +192,7 @@ async function loadDash() {
 
 // ── SOURCES ──────────────────────────────────────────────────────────────────
 async function loadSources() {
+  skTable('sources-tbody', ['58%', '22%', '65%', '28px', '90px']);
   S.sources = await api.get('/admin/sources');
   const tb = document.getElementById('sources-tbody');
   if (!S.sources.length) {
@@ -159,14 +223,17 @@ document.getElementById('sources-tbody').addEventListener('change', async e => {
 document.getElementById('sources-tbody').addEventListener('click', async e => {
   const btn = e.target.closest('[data-action]'); if (!btn) return;
   const { action, id, name } = btn.dataset;
-  if (action === 'view-raw') await viewRaw(id, name);
+  if (action === 'view-raw')    await viewRaw(id, name);
   if (action === 'edit-source') editSource(id);
-  if (action === 'del-source') { if (!confirm(`Delete "${name}"?`)) return; await api.del(`/admin/sources/${id}`); toast('Deleted'); loadSources(); }
+  if (action === 'del-source') {
+    if (!confirm(`Delete "${name}"?`)) return;
+    await api.del(`/admin/sources/${id}`); toast('Deleted'); loadSources();
+  }
 });
 
 async function viewRaw(id, name) {
-  document.getElementById('raw-meta').textContent = `${name}`;
-  document.getElementById('raw-view').textContent  = 'Loading…';
+  document.getElementById('raw-meta').textContent = name;
+  skLines('raw-view', 10);
   openM('m-raw');
   try {
     const d = await api.get(`/admin/sources/${id}/latest`);
@@ -188,7 +255,6 @@ function resetSourceForm(s = {}) {
   document.getElementById('s-auth-user').value   = s.authConfig?.username || '';
   document.getElementById('s-auth-pass').value   = s.authConfig?.password || '';
   document.getElementById('s-enabled').checked  = s.enabled !== false;
-  // Subscribe message — store as pretty JSON string for display
   const sub = s.wsSubscribeMessage;
   document.getElementById('s-subscribe').value = sub
     ? (typeof sub === 'string' ? sub : JSON.stringify(sub, null, 2))
@@ -221,16 +287,14 @@ document.getElementById('btn-save-source').addEventListener('click', async () =>
   else if (auth === 'bearer') { cfg.token = document.getElementById('s-auth-val').value; }
   else if (auth === 'basic')  { cfg.username = document.getElementById('s-auth-user').value; cfg.password = document.getElementById('s-auth-pass').value; }
   const type = document.getElementById('s-type').value;
-  // Parse subscribe message — accept raw JSON or plain string
   let wsSubscribeMessage = null;
   if (type === 'websocket') {
     const raw = document.getElementById('s-subscribe').value.trim();
     if (raw) {
       try { wsSubscribeMessage = JSON.parse(raw); }
-      catch { wsSubscribeMessage = raw; } // treat as plain string if not valid JSON
+      catch { wsSubscribeMessage = raw; }
     }
   }
-
   const payload = {
     name: document.getElementById('s-name').value.trim(),
     type,
@@ -241,16 +305,23 @@ document.getElementById('btn-save-source').addEventListener('click', async () =>
     enabled: document.getElementById('s-enabled').checked,
   };
   if (!payload.name || !payload.url) return toast('Name and URL required', true);
+  const btn = document.getElementById('btn-save-source');
+  btnLoad(btn, 'Saving');
   try {
     id ? await api.put(`/admin/sources/${id}`, payload) : await api.post('/admin/sources', payload);
+    btnDone(btn);
     toast(id ? 'Source updated' : 'Source created');
     closeM('m-source'); loadSources();
-  } catch (err) { toast(err.message, true); }
+  } catch (err) { btnDone(btn); toast(err.message, true); }
 });
 
 // ── TRANSFORMATIONS ──────────────────────────────────────────────────────────
 async function loadTransforms() {
-  [S.transforms, S.sources] = await Promise.all([api.get('/admin/transformations'), api.get('/admin/sources')]);
+  skTable('transformations-tbody', ['58%', '38%', '20px', '20px', '28px', '90px']);
+  [S.transforms, S.sources] = await Promise.all([
+    api.get('/admin/transformations'),
+    api.get('/admin/sources'),
+  ]);
   const tb = document.getElementById('transformations-tbody');
   if (!S.transforms.length) {
     tb.innerHTML = '<tr><td colspan="6" class="empty-row"><span class="ei">⚙️</span><p>No transformations yet.</p></td></tr>';
@@ -336,46 +407,71 @@ document.getElementById('btn-add-map').addEventListener('click', () => addMapRow
 document.getElementById('btn-add-static').addEventListener('click', () => addStaticRow());
 
 document.getElementById('btn-add-transformation').addEventListener('click', async () => {
-  S.sources = await api.get('/admin/sources');
-  openTransformModal();
-  openM('m-transform');
+  const btn = document.getElementById('btn-add-transformation');
+  btnLoad(btn, '+ Add Transformation');
+  try {
+    S.sources = await api.get('/admin/sources');
+    btnDone(btn);
+    openTransformModal();
+    openM('m-transform');
+  } catch (err) { btnDone(btn); toast(err.message, true); }
 });
 
 document.getElementById('btn-preview').addEventListener('click', async () => {
   const raw = document.getElementById('t-sample').value.trim();
   if (!raw) return toast('Paste sample JSON first', true);
   let sample; try { sample = JSON.parse(raw); } catch { return toast('Invalid JSON', true); }
+  const btn = document.getElementById('btn-preview');
+  btnLoad(btn, 'Preview');
   try {
     const result = await api.post('/admin/transformations/preview', { sampleData: sample, mappings: getMappings(), staticFields: getStaticFields() });
+    btnDone(btn);
     document.getElementById('preview-section').style.display = '';
     setJSON(document.getElementById('preview-out'), result);
-  } catch (err) { toast(err.message, true); }
+  } catch (err) { btnDone(btn); toast(err.message, true); }
 });
 
 document.getElementById('btn-load-latest').addEventListener('click', async () => {
   const sid = document.getElementById('t-source').value;
   if (!sid) return toast('Select a source first', true);
+  const btn = document.getElementById('btn-load-latest');
+  btnLoad(btn, 'Load latest from source');
   try {
     const d = await api.get(`/admin/sources/${sid}/latest`);
     document.getElementById('t-sample').value = JSON.stringify(d.data ?? d, null, 2);
+    btnDone(btn);
     toast('Loaded');
-  } catch (err) { toast(err.message || 'No data yet', true); }
+  } catch (err) { btnDone(btn); toast(err.message || 'No data yet', true); }
 });
 
 document.getElementById('btn-save-transform').addEventListener('click', async () => {
   const id = document.getElementById('t-id').value;
-  const payload = { name: document.getElementById('t-name').value.trim(), sourceId: document.getElementById('t-source').value, mappings: getMappings(), staticFields: getStaticFields(), enabled: document.getElementById('t-enabled').checked };
+  const payload = {
+    name: document.getElementById('t-name').value.trim(),
+    sourceId: document.getElementById('t-source').value,
+    mappings: getMappings(),
+    staticFields: getStaticFields(),
+    enabled: document.getElementById('t-enabled').checked,
+  };
   if (!payload.name || !payload.sourceId) return toast('Name and source required', true);
+  const btn = document.getElementById('btn-save-transform');
+  btnLoad(btn, 'Saving');
   try {
     id ? await api.put(`/admin/transformations/${id}`, payload) : await api.post('/admin/transformations', payload);
+    btnDone(btn);
     toast(id ? 'Updated' : 'Created');
     closeM('m-transform'); loadTransforms();
-  } catch (err) { toast(err.message, true); }
+  } catch (err) { btnDone(btn); toast(err.message, true); }
 });
 
 // ── ENDPOINTS ────────────────────────────────────────────────────────────────
 async function loadEndpoints() {
-  [S.endpoints, S.sources, S.transforms] = await Promise.all([api.get('/admin/endpoints'), api.get('/admin/sources'), api.get('/admin/transformations')]);
+  skTable('endpoints-tbody', ['58%', '42%', '32px', '42%', '28px', '120px']);
+  [S.endpoints, S.sources, S.transforms] = await Promise.all([
+    api.get('/admin/endpoints'),
+    api.get('/admin/sources'),
+    api.get('/admin/transformations'),
+  ]);
   const tb = document.getElementById('endpoints-tbody');
   if (!S.endpoints.length) {
     tb.innerHTML = '<tr><td colspan="6" class="empty-row"><span class="ei">🚀</span><p>No endpoints yet.</p></td></tr>';
@@ -424,7 +520,7 @@ async function viewOutput(id) {
     urlRow.insertAdjacentHTML('afterend', `<div class="meta" style="margin-bottom:10px">x-api-key: <code>${h(ep.apiKey)}</code></div>`);
   }
   document.getElementById('output-meta').textContent = '';
-  document.getElementById('output-view').textContent = 'Loading…';
+  skLines('output-view', 10);
   openM('m-output');
   try {
     const d = await api.get(`/admin/endpoints/${id}/latest`);
@@ -457,9 +553,14 @@ function updateEpAuthUI() { document.getElementById('e-key-fg').style.display = 
 document.getElementById('e-auth').addEventListener('change', updateEpAuthUI);
 
 document.getElementById('btn-add-endpoint').addEventListener('click', async () => {
-  [S.sources, S.transforms] = await Promise.all([api.get('/admin/sources'), api.get('/admin/transformations')]);
-  openEndpointModal();
-  openM('m-endpoint');
+  const btn = document.getElementById('btn-add-endpoint');
+  btnLoad(btn, '+ Add Endpoint');
+  try {
+    [S.sources, S.transforms] = await Promise.all([api.get('/admin/sources'), api.get('/admin/transformations')]);
+    btnDone(btn);
+    openEndpointModal();
+    openM('m-endpoint');
+  } catch (err) { btnDone(btn); toast(err.message, true); }
 });
 
 document.getElementById('btn-save-endpoint').addEventListener('click', async () => {
@@ -479,23 +580,27 @@ document.getElementById('btn-save-endpoint').addEventListener('click', async () 
   if (!payload.path.startsWith('/')) return toast('Path must start with /', true);
   const reserved = ['/admin', '/public', '/logo'];
   if (reserved.some(r => payload.path.startsWith(r))) return toast(`Path cannot start with ${reserved.join(', ')}`, true);
+  const btn = document.getElementById('btn-save-endpoint');
+  btnLoad(btn, 'Saving');
   try {
     const result = id ? await api.put(`/admin/endpoints/${id}`, payload) : await api.post('/admin/endpoints', payload);
+    btnDone(btn);
     toast(id ? 'Updated' : `Created · key: ${result.apiKey || 'none'}`);
     closeM('m-endpoint'); loadEndpoints();
-  } catch (err) { toast(err.message, true); }
+  } catch (err) { btnDone(btn); toast(err.message, true); }
 });
 
 // ── LOGS ─────────────────────────────────────────────────────────────────────
 async function loadLogs() {
   const type = document.getElementById('log-type').value;
   const el   = document.getElementById('logs-view');
-  el.textContent = 'Loading…';
+  skLines('logs-view', 16);
   try {
     const { logs } = await api.get(`/admin/logs?type=${type}&lines=200`);
     renderLogs(el, logs);
   } catch (err) { el.textContent = err.message; }
 }
+
 function renderLogs(el, lines) {
   if (!lines?.length) { el.innerHTML = '<span class="jx">No entries.</span>'; return; }
   el.innerHTML = lines.map(l => {
@@ -504,7 +609,12 @@ function renderLogs(el, lines) {
   }).join('');
   el.scrollTop = el.scrollHeight;
 }
-document.getElementById('btn-refresh-logs').addEventListener('click', loadLogs);
+
+document.getElementById('btn-refresh-logs').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-refresh-logs');
+  btnLoad(btn, 'Refresh');
+  try { await loadLogs(); } finally { btnDone(btn); }
+});
 document.getElementById('log-type').addEventListener('change', loadLogs);
 
 // ── Init ─────────────────────────────────────────────────────────────────────
