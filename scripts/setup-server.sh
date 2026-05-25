@@ -20,8 +20,8 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 # ── 1. System update ─────────────────────────────────────────
 echo "[1/7] Updating system..."
-sudo dnf update -y -q
-sudo dnf install -y -q git curl nginx
+sudo dnf update -y -q --exclude=curl-minimal
+sudo dnf install -y -q git nginx
 
 # ── 2. Node.js 20 via NVM ────────────────────────────────────
 echo "[2/7] Installing Node.js 20..."

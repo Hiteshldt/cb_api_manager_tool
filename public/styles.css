@@ -178,6 +178,24 @@ select.fc { cursor: pointer; }
 .map-rm { background: none; border: none; color: var(--subtle); font-size: 14px; border-radius: 3px; padding: 2px 4px; }
 .map-rm:hover { color: var(--red); background: var(--red-bg); }
 
+/* ── Computed field rows ── */
+.comp-row { display: grid; grid-template-columns: 150px 18px 1fr 26px; align-items: center; gap: 6px; }
+.comp-row input { padding: 6px 8px; border: 1px solid var(--border); border-radius: 5px; font-size: 12.5px; background: var(--surface); width: 100%; outline: none; }
+.comp-row .comp-path { font-family: monospace; }
+.comp-row .comp-expr { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; color: #7e22ce; }
+.comp-row input:focus { border-color: var(--green); }
+
+/* ── Expression hint card ── */
+.expr-hint {
+  margin-top: 8px; padding: 10px 12px;
+  background: #fafbff; border: 1px solid #e0e7ff;
+  border-radius: 6px; font-size: 11.5px; line-height: 1.8;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.expr-hint-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.expr-hint-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #6366f1; white-space: nowrap; min-width: 58px; }
+.expr-hint code { background: #ede9fe; color: #5b21b6; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
 /* ── JSON viewer ── */
 .json-view {
   background: #0f172a; color: #94a3b8;

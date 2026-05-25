@@ -317,14 +317,14 @@ document.getElementById('btn-save-source').addEventListener('click', async () =>
 
 // ── TRANSFORMATIONS ──────────────────────────────────────────────────────────
 async function loadTransforms() {
-  skTable('transformations-tbody', ['58%', '38%', '20px', '20px', '28px', '90px']);
+  skTable('transformations-tbody', ['55%', '35%', '60px', '28px', '90px']);
   [S.transforms, S.sources] = await Promise.all([
     api.get('/admin/transformations'),
     api.get('/admin/sources'),
   ]);
   const tb = document.getElementById('transformations-tbody');
   if (!S.transforms.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="empty-row"><span class="ei">⚙️</span><p>No transformations yet.</p></td></tr>';
+    tb.innerHTML = '<tr><td colspan="5" class="empty-row"><span class="ei">⚙️</span><p>No transformations yet.</p></td></tr>';
     return;
   }
   tb.innerHTML = S.transforms.map(t => {
@@ -332,8 +332,12 @@ async function loadTransforms() {
     return `<tr>
       <td><strong>${h(t.name)}</strong><div class="meta">${h(t.id)}</div></td>
       <td style="font-size:12px">${h(sn)}</td>
-      <td>${(t.mappings||[]).length}</td>
-      <td>${(t.staticFields||[]).length}</td>
+      <td style="font-size:12px;color:var(--muted)">
+        ${(t.mappings||[]).length ? `<span title="Field mappings">${(t.mappings||[]).length}M</span> ` : ''}
+        ${(t.staticFields||[]).length ? `<span title="Static fields">${(t.staticFields||[]).length}S</span> ` : ''}
+        ${(t.computedFields||[]).length ? `<span title="Computed fields" style="color:#7e22ce">${(t.computedFields||[]).length}C</span>` : ''}
+        ${!(t.mappings||[]).length && !(t.staticFields||[]).length && !(t.computedFields||[]).length ? '—' : ''}
+      </td>
       <td><label class="toggle"><input type="checkbox" ${t.enabled !== false ? 'checked' : ''} data-action="toggle-t" data-id="${t.id}" /><span class="toggle-slider"></span></label></td>
       <td><div class="row-actions">
         <button class="btn btn-ghost btn-sm" data-action="edit-t" data-id="${t.id}">Edit</button>
@@ -376,6 +380,7 @@ function openTransformModal(t = {}) {
   buildSourceSelect('t-source', t.sourceId);
   renderMapRows(t.mappings || []);
   renderStaticRows(t.staticFields || []);
+  renderComputedRows(t.computedFields || []);
 }
 
 function renderMapRows(rows) {
@@ -406,6 +411,31 @@ const getStaticFields = () => [...document.querySelectorAll('#static-list .map-r
 document.getElementById('btn-add-map').addEventListener('click', () => addMapRow());
 document.getElementById('btn-add-static').addEventListener('click', () => addStaticRow());
 
+// ── Computed rows ─────────────────────────────────────────────────────────────
+function renderComputedRows(rows) {
+  document.getElementById('computed-list').innerHTML = '';
+  (rows || []).forEach(r => addComputedRow(r.targetPath, r.expression));
+}
+function addComputedRow(path = '', expr = '') {
+  const row = document.createElement('div');
+  row.className = 'comp-row';
+  row.innerHTML =
+    `<input class="comp-path" value="${h(path)}" placeholder="output.field" />`+
+    `<div class="map-arrow">=</div>`+
+    `<input class="comp-expr" value="${h(expr)}" placeholder="d1 * 2.5 + d2 / 10" />`+
+    `<button class="map-rm" onclick="this.closest('.comp-row').remove()">✕</button>`;
+  document.getElementById('computed-list').appendChild(row);
+}
+const getComputedFields = () =>
+  [...document.querySelectorAll('#computed-list .comp-row')]
+    .map(r => ({
+      targetPath: r.querySelector('.comp-path').value.trim(),
+      expression: r.querySelector('.comp-expr').value.trim(),
+    }))
+    .filter(f => f.targetPath && f.expression);
+
+document.getElementById('btn-add-computed').addEventListener('click', () => addComputedRow());
+
 document.getElementById('btn-add-transformation').addEventListener('click', async () => {
   const btn = document.getElementById('btn-add-transformation');
   btnLoad(btn, '+ Add Transformation');
@@ -424,7 +454,7 @@ document.getElementById('btn-preview').addEventListener('click', async () => {
   const btn = document.getElementById('btn-preview');
   btnLoad(btn, 'Preview');
   try {
-    const result = await api.post('/admin/transformations/preview', { sampleData: sample, mappings: getMappings(), staticFields: getStaticFields() });
+    const result = await api.post('/admin/transformations/preview', { sampleData: sample, mappings: getMappings(), staticFields: getStaticFields(), computedFields: getComputedFields() });
     btnDone(btn);
     document.getElementById('preview-section').style.display = '';
     setJSON(document.getElementById('preview-out'), result);
@@ -447,11 +477,12 @@ document.getElementById('btn-load-latest').addEventListener('click', async () =>
 document.getElementById('btn-save-transform').addEventListener('click', async () => {
   const id = document.getElementById('t-id').value;
   const payload = {
-    name: document.getElementById('t-name').value.trim(),
-    sourceId: document.getElementById('t-source').value,
-    mappings: getMappings(),
-    staticFields: getStaticFields(),
-    enabled: document.getElementById('t-enabled').checked,
+    name:           document.getElementById('t-name').value.trim(),
+    sourceId:       document.getElementById('t-source').value,
+    mappings:       getMappings(),
+    staticFields:   getStaticFields(),
+    computedFields: getComputedFields(),
+    enabled:        document.getElementById('t-enabled').checked,
   };
   if (!payload.name || !payload.sourceId) return toast('Name and source required', true);
   const btn = document.getElementById('btn-save-transform');

@@ -1,15 +1,22 @@
 'use strict';
-const jsonPath = require('../utils/jsonPath');
-const logger   = require('../utils/logger');
+const jsonPath  = require('../utils/jsonPath');
+const { evalExpr } = require('../utils/exprEval');
+const logger    = require('../utils/logger');
 const fileStore = require('../storage/fileStore');
 
 class TransformationService {
   /**
    * Apply transformation rules to raw data and return the output object.
+   *
+   * Rule order (applied in sequence, each can reference prior output):
+   *   1. Field mappings   — copy / rename fields from source
+   *   2. Static fields    — hard-coded constant values
+   *   3. Computed fields  — math expressions over SOURCE data
    */
   applyTransformation(rawData, transformation) {
     const output = {};
 
+    // ── 1. Field mappings ─────────────────────────────────────────────
     for (const mapping of (transformation.mappings || [])) {
       const val = jsonPath.get(rawData, mapping.sourcePath);
       if (val === undefined || val === null) {
@@ -23,8 +30,24 @@ class TransformationService {
       }
     }
 
+    // ── 2. Static fields ──────────────────────────────────────────────
     for (const field of (transformation.staticFields || [])) {
       jsonPath.set(output, field.targetPath, field.value);
+    }
+
+    // ── 3. Computed fields (math expressions over raw source data) ────
+    for (const cf of (transformation.computedFields || [])) {
+      if (!cf.targetPath || !cf.expression) continue;
+      const { result, error } = evalExpr(cf.expression, rawData);
+      if (error) {
+        logger.warn(`Computed field "${cf.targetPath}" error: ${error}`, {
+          transformationId: transformation.id,
+          expression: cf.expression,
+        });
+      }
+      if (result !== null && result !== undefined) {
+        jsonPath.set(output, cf.targetPath, result);
+      }
     }
 
     return output;
@@ -33,8 +56,13 @@ class TransformationService {
   /**
    * Preview without saving — used by the preview API and the UI.
    */
-  preview(sampleData, mappings = [], staticFields = []) {
-    return this.applyTransformation(sampleData, { id: 'preview', mappings, staticFields });
+  preview(sampleData, mappings = [], staticFields = [], computedFields = []) {
+    return this.applyTransformation(sampleData, {
+      id: 'preview',
+      mappings,
+      staticFields,
+      computedFields,
+    });
   }
 
   /**

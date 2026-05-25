@@ -102,8 +102,8 @@
         </div>
         <div class="card">
           <table>
-            <thead><tr><th>Name</th><th>Source</th><th>Mappings</th><th>Static</th><th>Enabled</th><th></th></tr></thead>
-            <tbody id="transformations-tbody"><tr><td colspan="6" class="empty-row">Loading…</td></tr></tbody>
+            <thead><tr><th>Name</th><th>Source</th><th>Rules <span style="font-weight:400;color:var(--subtle);font-size:10px">M·S·C</span></th><th>Enabled</th><th></th></tr></thead>
+            <tbody id="transformations-tbody"><tr><td colspan="5" class="empty-row">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -226,6 +226,18 @@
         <label>Static Fields &nbsp;<span style="font-weight:400;color:var(--subtle);text-transform:none;font-size:11px">targetPath = value</span></label>
         <div class="map-list" id="static-list"></div>
         <button class="btn btn-ghost btn-sm" id="btn-add-static">+ Add Static Field</button>
+      </div>
+
+      <div class="fg">
+        <label>Computed Fields &nbsp;<span style="font-weight:400;color:var(--subtle);text-transform:none;font-size:11px">math expressions over source data</span></label>
+        <div class="map-list" id="computed-list"></div>
+        <button class="btn btn-ghost btn-sm" id="btn-add-computed">+ Add Computed Field</button>
+        <div class="expr-hint">
+          <div class="expr-hint-row"><span class="expr-hint-lbl">Variables</span> top-level fields used directly — <code>d1</code> <code>temperature</code> <code>pm25</code> &nbsp;·&nbsp; nested: <code>data.sensors.pm25</code> or <code>field('sensors.pm25')</code></div>
+          <div class="expr-hint-row"><span class="expr-hint-lbl">Math</span> <code>abs</code> <code>round(x,d)</code> <code>floor</code> <code>ceil</code> <code>sqrt</code> <code>pow(b,e)</code> <code>log</code> <code>log10</code> <code>min(…)</code> <code>max(…)</code> <code>sin</code> <code>cos</code> <code>tan</code></div>
+          <div class="expr-hint-row"><span class="expr-hint-lbl">Helpers</span> <code>clamp(v,lo,hi)</code> &nbsp;<code>ifNull(v,fallback)</code> &nbsp;<code>pct(part,total)</code> &nbsp;<code>scale(v,inLo,inHi,outLo,outHi)</code> &nbsp;<code>avg(a,b,…)</code></div>
+          <div class="expr-hint-row"><span class="expr-hint-lbl">Examples</span> <code>d1 * 2.5 + d2 / 10</code> &nbsp;·&nbsp; <code>round(temperature * 1.8 + 32, 1)</code> &nbsp;·&nbsp; <code>clamp(pm25 * 4.57, 0, 500)</code></div>
+        </div>
       </div>
 
       <div class="fg">

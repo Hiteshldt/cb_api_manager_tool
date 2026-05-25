@@ -18,10 +18,15 @@ router.get('/:id', (req, res) => {
 
 // POST /admin/transformations/preview  (must be before /:id)
 router.post('/preview', (req, res) => {
-  const { sampleData, mappings, staticFields } = req.body;
+  const { sampleData, mappings, staticFields, computedFields } = req.body;
   if (!sampleData) return res.status(400).json({ error: 'sampleData is required' });
   try {
-    const result = transformationService.preview(sampleData, mappings || [], staticFields || []);
+    const result = transformationService.preview(
+      sampleData,
+      mappings       || [],
+      staticFields   || [],
+      computedFields || [],
+    );
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -30,7 +35,7 @@ router.post('/preview', (req, res) => {
 
 // POST /admin/transformations
 router.post('/', (req, res) => {
-  const { name, sourceId, mappings, staticFields, enabled } = req.body;
+  const { name, sourceId, mappings, staticFields, computedFields, enabled } = req.body;
   if (!name || !sourceId)
     return res.status(400).json({ error: 'name and sourceId are required' });
   if (!fileStore.getSources().find(s => s.id === sourceId))
@@ -38,14 +43,15 @@ router.post('/', (req, res) => {
 
   const now = new Date().toISOString();
   const t = {
-    id:           `transform_${uuidv4().replace(/-/g, '').slice(0, 8)}`,
+    id:             `transform_${uuidv4().replace(/-/g, '').slice(0, 8)}`,
     name,
     sourceId,
-    mappings:     mappings     || [],
-    staticFields: staticFields || [],
-    enabled:      enabled !== false,
-    createdAt:    now,
-    updatedAt:    now,
+    mappings:       mappings       || [],
+    staticFields:   staticFields   || [],
+    computedFields: computedFields || [],
+    enabled:        enabled !== false,
+    createdAt:      now,
+    updatedAt:      now,
   };
   const transformations = fileStore.getTransformations();
   transformations.push(t);
@@ -60,7 +66,13 @@ router.put('/:id', (req, res) => {
   const idx = transformations.findIndex(t => t.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'Transformation not found' });
 
-  const updated = { ...transformations[idx], ...req.body, id: transformations[idx].id, createdAt: transformations[idx].createdAt, updatedAt: new Date().toISOString() };
+  const updated = {
+    ...transformations[idx],
+    ...req.body,
+    id:        transformations[idx].id,
+    createdAt: transformations[idx].createdAt,
+    updatedAt: new Date().toISOString(),
+  };
   transformations[idx] = updated;
   fileStore.saveTransformations(transformations);
   logger.info('Transformation updated', { id: updated.id });
