@@ -1,5 +1,12 @@
 node_modules/
 .env
+
+# Runtime config — created and managed by the app, never committed to git
+data/sources.json
+data/transformations.json
+data/endpoints.json
+
+# Ephemeral runtime data
 data/latest-raw/*
 data/latest-transformed/*
 data/logs/*
