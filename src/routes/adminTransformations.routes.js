@@ -76,6 +76,17 @@ router.put('/:id', (req, res) => {
   transformations[idx] = updated;
   fileStore.saveTransformations(transformations);
   logger.info('Transformation updated', { id: updated.id });
+
+  // ── Re-process immediately ────────────────────────────────────────────────
+  // Apply the updated transformation rules against the last known raw data so
+  // the endpoint output reflects changes right away — no need to wait for the
+  // next WSS message to arrive.
+  const stored = fileStore.getRawData(updated.sourceId);
+  if (stored?.data) {
+    transformationService.processSourceData(updated.sourceId, stored.data);
+    logger.info('Transformation re-applied after edit', { id: updated.id, sourceId: updated.sourceId });
+  }
+
   res.json(updated);
 });
 
