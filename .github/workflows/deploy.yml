@@ -1,10 +1,12 @@
 name: Deploy to AWS EC2
 
 # Triggers automatically when you push to the production branch
+# Also allows manual trigger from GitHub Actions UI (Run workflow button)
 on:
   push:
     branches:
       - production
+  workflow_dispatch:
 
 jobs:
   deploy:
