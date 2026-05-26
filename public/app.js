@@ -400,13 +400,21 @@ function renderStaticRows(rows) {
   rows.forEach(r => addStaticRow(r.targetPath, r.value));
 }
 function addStaticRow(path = '', val = '') {
+  // Display typed values naturally: numbers/booleans/null as their literal,
+  // strings as plain text (no wrapping quotes).
+  const display = (typeof val === 'string') ? val : (val === null ? 'null' : JSON.stringify(val));
   const row = document.createElement('div');
   row.className = 'map-row';
-  row.innerHTML = `<input class="st-path" value="${h(String(path))}" placeholder="target.path" /><div class="map-arrow">=</div><input class="st-val" value="${h(String(val))}" placeholder="value" /><button class="map-rm" onclick="this.closest('.map-row').remove()">✕</button>`;
+  row.innerHTML = `<input class="st-path" value="${h(String(path))}" placeholder="target.path" /><div class="map-arrow">=</div><input class="st-val" value="${h(display)}" placeholder="value  e.g.  hello  or  42  or  true" /><button class="map-rm" onclick="this.closest('.map-row').remove()">✕</button>`;
   document.getElementById('static-list').appendChild(row);
 }
+// Auto-cast static field values: numbers, booleans, null, JSON objects/arrays,
+// or plain strings.  "hello" (with quotes) → string hello.  42 → number 42.
+function parseStaticValue(raw) {
+  try { return JSON.parse(raw); } catch { return raw; }
+}
 const getMappings     = () => [...document.querySelectorAll('#map-list .map-row')].map(r => ({ sourcePath: r.querySelector('.map-src').value.trim(), targetPath: r.querySelector('.map-tgt').value.trim() })).filter(m => m.sourcePath && m.targetPath);
-const getStaticFields = () => [...document.querySelectorAll('#static-list .map-row')].map(r => ({ targetPath: r.querySelector('.st-path').value.trim(), value: r.querySelector('.st-val').value })).filter(f => f.targetPath);
+const getStaticFields = () => [...document.querySelectorAll('#static-list .map-row')].map(r => ({ targetPath: r.querySelector('.st-path').value.trim(), value: parseStaticValue(r.querySelector('.st-val').value) })).filter(f => f.targetPath);
 
 document.getElementById('btn-add-map').addEventListener('click', () => addMapRow());
 document.getElementById('btn-add-static').addEventListener('click', () => addStaticRow());
