@@ -356,7 +356,7 @@ document.getElementById('transformations-tbody').addEventListener('change', asyn
 document.getElementById('transformations-tbody').addEventListener('click', async e => {
   const btn = e.target.closest('[data-action]'); if (!btn) return;
   const { action, id, name } = btn.dataset;
-  if (action === 'edit-t') openTransformModal(S.transforms.find(t => t.id === id));
+  if (action === 'edit-t') { openTransformModal(S.transforms.find(t => t.id === id)); openM('m-transform'); }
   if (action === 'del-t') {
     if (!confirm(`Delete "${name}"?`)) return;
     await api.del(`/admin/transformations/${id}`); toast('Deleted'); loadTransforms();
@@ -535,7 +535,7 @@ document.getElementById('endpoints-tbody').addEventListener('click', async e => 
   const btn = e.target.closest('[data-action]'); if (!btn) return;
   const { action, id, name } = btn.dataset;
   if (action === 'view-out') viewOutput(id);
-  if (action === 'edit-ep') openEndpointModal(S.endpoints.find(ep => ep.id === id));
+  if (action === 'edit-ep') { openEndpointModal(S.endpoints.find(ep => ep.id === id)); openM('m-endpoint'); }
   if (action === 'del-ep') {
     if (!confirm(`Delete "${name}"?`)) return;
     await api.del(`/admin/endpoints/${id}`); toast('Deleted'); loadEndpoints();
