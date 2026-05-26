@@ -8,26 +8,22 @@ on:
       - production
   workflow_dispatch:
 
+# Explicit read permission — needed for private repos
+permissions:
+  contents: read
+
 jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout (just to show diff in Actions UI)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Show what changed
-        run: git diff --name-only HEAD~1 HEAD || true
-
       - name: SSH into EC2 and deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host:     ${{ secrets.EC2_HOST }}       # EC2 public IP or domain
-          username: ec2-user                       # Amazon Linux 2023 default user
-          key:      ${{ secrets.EC2_SSH_KEY }}     # contents of your .pem file
+          host:     ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key:      ${{ secrets.EC2_SSH_KEY }}
           port:     22
           script: |
             cd ~/cb_api_manager_tool
