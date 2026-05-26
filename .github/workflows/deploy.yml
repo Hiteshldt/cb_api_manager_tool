@@ -1,14 +1,11 @@
 name: Deploy to AWS EC2
 
-# Triggers automatically when you push to the production branch
-# Also allows manual trigger from GitHub Actions UI (Run workflow button)
 on:
   push:
     branches:
       - production
   workflow_dispatch:
 
-# Explicit read permission — needed for private repos
 permissions:
   contents: read
 
@@ -19,16 +16,15 @@ jobs:
 
     steps:
       - name: SSH into EC2 and deploy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host:     ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key:      ${{ secrets.EC2_SSH_KEY }}
-          port:     22
-          script: |
-            cd ~/cb_api_manager_tool
-            ./scripts/deploy.sh
-
-      - name: Notify on failure
-        if: failure()
-        run: echo "Deploy failed — check the Actions log and run 'pm2 logs cb-api-engine' on the server"
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          echo "$EC2_SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh -i /tmp/deploy_key \
+              -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              ec2-user@$EC2_HOST \
+              "cd ~/cb_api_manager_tool && ./scripts/deploy.sh"
+          rm -f /tmp/deploy_key
