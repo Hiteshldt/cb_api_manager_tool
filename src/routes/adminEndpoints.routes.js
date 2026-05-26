@@ -3,7 +3,26 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const router  = express.Router();
 const fileStore = require('../storage/fileStore');
+const transformationService = require('../services/transformation.service');
 const logger  = require('../utils/logger');
+
+// Helper: generate endpoint output immediately from the last known raw data.
+// Used on create and update so the Output modal never shows 404 just because
+// no new WSS packet has arrived yet since the endpoint was added/changed.
+function seedEndpointOutput(ep) {
+  const stored = fileStore.getRawData(ep.sourceId);
+  if (!stored?.data) return;                          // no raw data yet — WSS hasn't fired
+  const transformations = fileStore.getTransformations();
+  const t = transformations.find(t => t.id === ep.transformationId && t.enabled !== false);
+  if (!t) return;
+  try {
+    const output = transformationService.applyTransformation(stored.data, t);
+    fileStore.saveTransformedData(ep.id, output);
+    logger.info('Endpoint output seeded', { id: ep.id });
+  } catch (err) {
+    logger.warn('Endpoint output seed failed', { id: ep.id, error: err.message });
+  }
+}
 
 // GET /admin/endpoints
 router.get('/', (req, res) => res.json(fileStore.getEndpoints()));
@@ -59,6 +78,7 @@ router.post('/', (req, res) => {
   endpoints.push(ep);
   fileStore.saveEndpoints(endpoints);
   logger.info('Endpoint created', { id: ep.id, path: ep.path });
+  seedEndpointOutput(ep);           // generate output immediately if raw data exists
   res.status(201).json(ep);
 });
 
@@ -83,6 +103,7 @@ router.put('/:id', (req, res) => {
   endpoints[idx] = updated;
   fileStore.saveEndpoints(endpoints);
   logger.info('Endpoint updated', { id: updated.id });
+  seedEndpointOutput(updated);      // re-generate output immediately if raw data exists
   res.json(updated);
 });
 

@@ -565,7 +565,12 @@ async function viewOutput(id) {
     const d = await api.get(`/admin/endpoints/${id}/latest`);
     setJSON(document.getElementById('output-view'), d.data ?? d);
     document.getElementById('output-meta').textContent = `Transformed at: ${d.transformedAt ?? '—'}`;
-  } catch (err) { document.getElementById('output-view').textContent = err.message; }
+  } catch (err) {
+    document.getElementById('output-view').innerHTML =
+      err.message?.includes('404') || err.message?.toLowerCase().includes('no data')
+        ? '<span class="jx">No output yet — waiting for the next data packet from the source.</span>'
+        : `<span class="jx">${h(err.message)}</span>`;
+  }
 }
 
 function buildTransformSelect(elId, selectedId = '') {
