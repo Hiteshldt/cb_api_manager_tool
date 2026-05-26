@@ -38,8 +38,31 @@ router.get('/:id', (req, res) => {
 router.get('/:id/latest', (req, res) => {
   const ep = fileStore.getEndpoints().find(e => e.id === req.params.id);
   if (!ep) return res.status(404).json({ error: 'Endpoint not found' });
-  const data = fileStore.getTransformedData(req.params.id);
-  if (!data) return res.status(404).json({ error: 'No data available yet' });
+
+  let data = fileStore.getTransformedData(req.params.id);
+
+  // No cached output yet — generate on-the-fly from the last known raw data
+  // so the Output modal never shows 404 just because no WSS packet has arrived
+  // since the endpoint was created or the server was restarted.
+  if (!data) {
+    const stored = fileStore.getRawData(ep.sourceId);
+    if (stored?.data) {
+      const t = fileStore.getTransformations().find(
+        t => t.id === ep.transformationId && t.enabled !== false
+      );
+      if (t) {
+        try {
+          const output = transformationService.applyTransformation(stored.data, t);
+          fileStore.saveTransformedData(ep.id, output);   // cache it for next time
+          return res.json({ transformedAt: new Date().toISOString(), data: output });
+        } catch (err) {
+          logger.warn('On-demand output generation failed', { id: ep.id, error: err.message });
+        }
+      }
+    }
+  }
+
+  if (!data) return res.status(404).json({ error: 'No data available yet — source has not received any data' });
   res.json(data);
 });
 
