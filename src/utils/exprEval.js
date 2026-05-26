@@ -49,6 +49,14 @@ function evalExpr(expression, sourceData) {
     return { result: null, error: 'Empty expression' };
   }
 
+  // Determine the correct 'data' context object.
+  // If the source JSON has a nested 'data' object (very common in IoT feeds),
+  // bind the 'data' context variable to that inner object instead of the root.
+  let dataContext = sourceData ?? {};
+  if (sourceData && typeof sourceData.data === 'object' && sourceData.data !== null && !Array.isArray(sourceData.data)) {
+    dataContext = sourceData.data;
+  }
+
   const ctx = {
     // ── Math functions ──────────────────────────────────────────────────
     abs:   (x)        => Math.abs(x),
@@ -83,13 +91,22 @@ function evalExpr(expression, sourceData) {
 
     // ── Data access helpers ─────────────────────────────────────────────
     field: (path) => jsonPath.get(sourceData, path),  // field('nested.key')
-    data:  sourceData ?? {},                            // data.sensors.pm25
+    data:  dataContext,                               // data.sensors.pm25
   };
 
   // Expose top-level source fields as direct variable names
   // (only if the key is a valid JS identifier and not already taken by a helper)
   if (sourceData && typeof sourceData === 'object' && !Array.isArray(sourceData)) {
     for (const [key, val] of Object.entries(sourceData)) {
+      if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) && !(key in ctx)) {
+        ctx[key] = val;
+      }
+    }
+  }
+
+  // Also expose nested fields under 'data' directly as variable names if 'data' is an object
+  if (sourceData && typeof sourceData.data === 'object' && sourceData.data !== null && !Array.isArray(sourceData.data)) {
+    for (const [key, val] of Object.entries(sourceData.data)) {
       if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) && !(key in ctx)) {
         ctx[key] = val;
       }
