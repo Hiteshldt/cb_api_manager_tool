@@ -16,9 +16,28 @@ class TransformationService {
   applyTransformation(rawData, transformation) {
     const output = {};
 
+    // If the source wraps everything in a nested 'data' object
+    // (e.g. { type, deviceId, data: { d1, d2, … } }) treat that inner
+    // object as a fallback scope so users can write 'd1' instead of 'data.d1'.
+    const nestedData = (
+      rawData &&
+      typeof rawData.data === 'object' &&
+      rawData.data !== null &&
+      !Array.isArray(rawData.data)
+    ) ? rawData.data : null;
+
+    // Helper: resolve a source path, falling back to nestedData if needed.
+    const resolve = (sourcePath) => {
+      const v = jsonPath.get(rawData, sourcePath);
+      if ((v !== undefined && v !== null) || !nestedData) return v;
+      // Fallback: try the same path inside rawData.data
+      const nested = jsonPath.get(nestedData, sourcePath);
+      return (nested !== undefined && nested !== null) ? nested : v;
+    };
+
     // ── 1. Field mappings ─────────────────────────────────────────────
     for (const mapping of (transformation.mappings || [])) {
-      const val = jsonPath.get(rawData, mapping.sourcePath);
+      const val = resolve(mapping.sourcePath);
       if (val === undefined || val === null) {
         const def = mapping.defaultValue;
         jsonPath.set(output, mapping.targetPath, def !== undefined ? def : null);

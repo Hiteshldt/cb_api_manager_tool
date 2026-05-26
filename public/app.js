@@ -391,7 +391,7 @@ function renderMapRows(rows) {
 function addMapRow(src = '', tgt = '') {
   const row = document.createElement('div');
   row.className = 'map-row';
-  row.innerHTML = `<input class="map-src" value="${h(src)}" placeholder="source.path" /><div class="map-arrow">→</div><input class="map-tgt" value="${h(tgt)}" placeholder="target.path" /><button class="map-rm" onclick="this.closest('.map-row').remove()">✕</button>`;
+  row.innerHTML = `<input class="map-src" value="${h(src)}" placeholder="read from (e.g. d1)" /><div class="map-arrow">→</div><input class="map-tgt" value="${h(tgt)}" placeholder="output as (e.g. pm25)" /><button class="map-rm" onclick="this.closest('.map-row').remove()">✕</button>`;
   document.getElementById('map-list').appendChild(row);
 }
 function renderStaticRows(rows) {
