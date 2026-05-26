@@ -78,13 +78,23 @@ router.put('/:id', (req, res) => {
   logger.info('Transformation updated', { id: updated.id });
 
   // ── Re-process immediately ────────────────────────────────────────────────
-  // Apply the updated transformation rules against the last known raw data so
-  // the endpoint output reflects changes right away — no need to wait for the
-  // next WSS message to arrive.
+  // Use `updated` directly (in-memory) — avoids the race condition where
+  // processSourceData() would re-read from disk before the async write queue
+  // has flushed the new transformation, producing stale output.
   const stored = fileStore.getRawData(updated.sourceId);
   if (stored?.data) {
-    transformationService.processSourceData(updated.sourceId, stored.data);
-    logger.info('Transformation re-applied after edit', { id: updated.id, sourceId: updated.sourceId });
+    try {
+      const output = transformationService.applyTransformation(stored.data, updated);
+      const linked = fileStore.getEndpoints().filter(
+        e => e.transformationId === updated.id && e.enabled !== false
+      );
+      for (const ep of linked) {
+        fileStore.saveTransformedData(ep.id, output);
+      }
+      logger.info('Transformation re-applied after edit', { id: updated.id, endpoints: linked.length });
+    } catch (err) {
+      logger.warn('Re-process after edit failed', { id: updated.id, error: err.message });
+    }
   }
 
   res.json(updated);
